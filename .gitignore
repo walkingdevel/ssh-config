@@ -1,0 +1,12 @@
+# Binaries for programs and plugins
+main
+ssh_config
+*.exe
+*.exe~
+*.so
+*.dylib
+*.dll
+vls.log
+
+.vscode
+.DS_Store
