@@ -452,7 +452,7 @@ fn get_default_config(host string) SshConfig {
 }
 
 fn merge_configs(mut x map[string]SshConfig, y map[string]SshConfig) {
-	for config_host in y.keys() {
-		x[config_host] = y[config_host]
+	for host, config in y {
+		x[host] = config
 	}
 }
