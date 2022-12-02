@@ -7,10 +7,10 @@ v install https://github.com/walkingdevel/ssh-config
 # Usage.
 
 ```v
-import ssh_config
+import ssh_config { parse_ssh_config_file }
 
 fn main() {
-	configs := ssh_config.parse_ssh_config_file('/Users/user/.ssh/config') or { panic(err) }
+	configs := parse_ssh_config_file('/Users/user/.ssh/config') or { panic(err) }
 
 	postgres_config := configs['postgres']
 
