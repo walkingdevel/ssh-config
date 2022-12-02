@@ -74,13 +74,19 @@ mut:
 	xauth_location                    string
 }
 
-pub fn parse_config_file(path string) !map[string]SshConfig {
+pub fn parse_ssh_config_file(path string) !map[string]SshConfig {
+	directory_path := os.dir(path)
+	absolute_path := os.abs_path(directory_path)
 	config := os.read_file(path)!
 
-	return parse_config(config)
+	return parse_config(absolute_path, config)
 }
 
-pub fn parse_config(config string) map[string]SshConfig {
+pub fn parse_ssh_config(config string) !map[string]SshConfig {
+	return parse_config('', config)!
+}
+
+fn parse_config(path string, config string) !map[string]SshConfig {
 	mut configs := map[string]SshConfig{}
 	mut current_host := ''
 
@@ -92,13 +98,25 @@ pub fn parse_config(config string) map[string]SshConfig {
 			continue
 		}
 
-		if is_host_declaration(config_line) {
-			line_parts := config_line.trim_space().split(' ')
+		line_parts := config_line.trim_space().split(' ')
 
-			if line_parts.len < 2 {
-				continue
+		if line_parts.len < 2 {
+			continue
+		}
+
+		if is_include_declaration(config_line) && path.len > 0 {
+			include_path := line_parts[1]
+			absolute_path := if include_path.starts_with('/') {
+				include_path
+			} else {
+				os.join_path(path, include_path)
 			}
 
+			include_configs := parse_ssh_config_file(absolute_path)!
+			merge_configs(mut &configs, &include_configs)
+		}
+
+		if is_host_declaration(config_line) {
 			host := line_parts[1]
 			is_host_empty := host.len == 0
 
@@ -129,12 +147,6 @@ pub fn parse_config(config string) map[string]SshConfig {
 		}
 
 		if is_property_declaration(config_line) {
-			line_parts := config_line.trim_space().split(' ')
-
-			if line_parts.len < 2 {
-				continue
-			}
-
 			property_name := line_parts.first().to_lower()
 			property_value := line_parts[1..].join(' ')
 
@@ -411,6 +423,10 @@ pub fn parse_config(config string) map[string]SshConfig {
 	return configs
 }
 
+fn is_include_declaration(value string) bool {
+	return value.to_lower().starts_with('include ')
+}
+
 fn is_host_declaration(value string) bool {
 	return value.to_lower().starts_with('host ')
 }
@@ -429,4 +445,10 @@ fn compare_strings(x string, y string) bool {
 
 fn property_to_bool(property string) bool {
 	return property.to_lower() == 'yes'
+}
+
+fn merge_configs(mut x map[string]SshConfig, y &map[string]SshConfig) {
+	for config_host in y.keys() {
+		x[config_host] = y[config_host]
+	}
 }
