@@ -122,27 +122,7 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 
 			if !is_host_empty {
 				current_host = host
-				configs[host] = SshConfig{
-					host: host
-					// default values from specification
-					challenge_response_authentication: true
-					check_host_ip: true
-					compression_level: 6
-					connection_attempts: 1
-					escape_char: '~'
-					global_known_hosts_file: '/etc/ssh/ssh_known_hosts'
-					log_level: 'INFO'
-					kbd_interactive_authentication: true
-					number_of_password_prompts: 3
-					password_authentication: true
-					port: 22
-					rsa_authentication: true
-					server_alive_count_max: 3
-					strict_host_key_checking: 'ask'
-					tunnel: 'no'
-					tunnel_device: 'any:any'
-					verify_host_key_dns: 'no'
-				}
+				configs[host] = get_default_config(host)
 			}
 		}
 
@@ -445,6 +425,30 @@ fn compare_strings(x string, y string) bool {
 
 fn property_to_bool(property string) bool {
 	return property.to_lower() == 'yes'
+}
+
+fn get_default_config(host string) SshConfig {
+	return SshConfig{
+		host: host
+		// default values from specification
+		challenge_response_authentication: true
+		check_host_ip: true
+		compression_level: 6
+		connection_attempts: 1
+		escape_char: '~'
+		global_known_hosts_file: '/etc/ssh/ssh_known_hosts'
+		log_level: 'INFO'
+		kbd_interactive_authentication: true
+		number_of_password_prompts: 3
+		password_authentication: true
+		port: 22
+		rsa_authentication: true
+		server_alive_count_max: 3
+		strict_host_key_checking: 'ask'
+		tunnel: 'no'
+		tunnel_device: 'any:any'
+		verify_host_key_dns: 'no'
+	}
 }
 
 fn merge_configs(mut x map[string]SshConfig, y map[string]SshConfig) {
