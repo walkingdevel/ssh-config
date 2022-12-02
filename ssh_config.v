@@ -113,7 +113,7 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 			}
 
 			include_configs := parse_ssh_config_file(absolute_path)!
-			merge_configs(mut &configs, &include_configs)
+			merge_configs(mut configs, include_configs)
 		}
 
 		if is_host_declaration(config_line) {
@@ -447,7 +447,7 @@ fn property_to_bool(property string) bool {
 	return property.to_lower() == 'yes'
 }
 
-fn merge_configs(mut x map[string]SshConfig, y &map[string]SshConfig) {
+fn merge_configs(mut x map[string]SshConfig, y map[string]SshConfig) {
 	for config_host in y.keys() {
 		x[config_host] = y[config_host]
 	}
