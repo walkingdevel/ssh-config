@@ -74,7 +74,7 @@ mut:
 	xauth_location                    string
 }
 
-pub fn parse_ssh_config_file(path string) !map[string]SshConfig {
+pub fn parse_file(path string) !map[string]SshConfig {
 	directory_path := os.dir(path)
 	absolute_path := os.abs_path(directory_path)
 	config := os.read_file(path)!
@@ -82,7 +82,7 @@ pub fn parse_ssh_config_file(path string) !map[string]SshConfig {
 	return parse_config(absolute_path, config)
 }
 
-pub fn parse_ssh_config(config string) !map[string]SshConfig {
+pub fn parse(config string) !map[string]SshConfig {
 	return parse_config('', config)!
 }
 
@@ -112,7 +112,7 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 				os.join_path(path, include_path)
 			}
 
-			include_configs := parse_ssh_config_file(absolute_path)!
+			include_configs := parse_file(absolute_path)!
 			merge_configs(mut configs, include_configs)
 		}
 
