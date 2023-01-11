@@ -8,5 +8,6 @@ ssh_config
 *.dll
 vls.log
 
+.idea
 .vscode
 .DS_Store
