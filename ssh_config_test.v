@@ -6,8 +6,8 @@ fn test_parse_empty_config() {
 	assert config.keys().len == 0
 }
 
-fn test_parse_standart_config() {
-	config := parse_file('./fixtures/.ssh/standart') or { panic(err) }
+fn test_parse_standard_config() {
+	config := parse_file('fixtures/.ssh/standard') or { panic(err) }
 	postgres_config := config['postgres']
 
 	assert postgres_config.host == 'postgres'
@@ -27,8 +27,8 @@ fn test_parse_local_forward_config() {
 	assert kibana_config.local_forward == '5601 127.0.0.1:5601'
 }
 
-fn test_parse_non_standart_config() {
-	config := parse_file('./fixtures/.ssh/non-standart') or { panic(err) }
+fn test_parse_non_standard_config() {
+	config := parse_file('fixtures/.ssh/non-standard') or { panic(err) }
 	server_config := config['server']
 
 	assert server_config.host == 'server'
@@ -36,6 +36,7 @@ fn test_parse_non_standart_config() {
 	assert server_config.user == 'root'
 	assert server_config.password_authentication
 	assert server_config.user_known_hosts_file == '/test/path'
+	assert server_config.challenge_response_authentication
 }
 
 fn test_parse_include_config() {
