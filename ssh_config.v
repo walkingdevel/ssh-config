@@ -131,8 +131,7 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 			property_value := line_parts[1..].join(' ')
 
 			$for field in SshConfig.fields {
-				field_name := field.name
-				config_param := convert_structure_field_name_to_config_param(field_name)
+				config_param := convert_structure_field_name_to_config_param(field.name)
 
 				$if field.typ is bool {
 					if compare_strings(property_name, config_param) {
