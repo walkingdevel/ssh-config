@@ -90,7 +90,9 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 	mut configs := map[string]SshConfig{}
 	mut current_host := ''
 
-	for config_line in config.split_into_lines() {
+	for mut config_line in config.split_into_lines() {
+		config_line = config_line.to_lower()
+
 		is_comment := config_line.starts_with('#')
 		is_empty_line := config_line.trim_space().len == 0
 
@@ -131,22 +133,22 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 			property_value := line_parts[1..].join(' ')
 
 			$for field in SshConfig.fields {
-				config_param := convert_structure_field_name_to_config_param(field.name)
+				config_param := convert_structure_field_name_to_config_param(field.name).to_lower()
 
 				$if field.typ is bool {
-					if compare_strings(property_name, config_param) {
-						configs[current_host].$(field.name) = property_to_bool(property_value)
+					if property_name == config_param {
+						configs[current_host].$(field.name) = property_to_bool(property_value.to_lower())
 					}
 				}
 
 				$if field.typ is int {
-					if compare_strings(property_name, config_param) {
+					if property_name == config_param {
 						configs[current_host].$(field.name) = property_value.int()
 					}
 				}
 
 				$if field.typ is string {
-					if compare_strings(property_name, config_param) {
+					if property_name == config_param {
 						if 'to_lower_case' in field.attrs {
 							configs[current_host].$(field.name) = property_value.to_lower()
 						} else if 'to_upper_case' in field.attrs {
@@ -164,11 +166,11 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 }
 
 fn is_include_declaration(value string) bool {
-	return value.to_lower().starts_with('include ')
+	return value.starts_with('include ')
 }
 
 fn is_host_declaration(value string) bool {
-	return value.to_lower().starts_with('host ')
+	return value.starts_with('host ')
 }
 
 fn is_property_declaration(property string) bool {
@@ -179,12 +181,8 @@ fn is_property_declaration(property string) bool {
 	return !is_property_empty && has_indent
 }
 
-fn compare_strings(x string, y string) bool {
-	return x.to_lower() == y.to_lower()
-}
-
 fn property_to_bool(property string) bool {
-	return property.to_lower() == 'yes'
+	return property == 'yes'
 }
 
 fn get_default_config(host string) SshConfig {
