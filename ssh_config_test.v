@@ -4,7 +4,7 @@ fn test_pase_case_insensitive_config() {
 	config := parse_file('./fixtures/.ssh/case-insensitive') or { panic(err) }
 	server_config := config['seRver']
 
-	assert server_config.host == 'server'
+	assert server_config.host == 'seRver'
 	assert server_config.hostname == '2.2.2.2'
 	assert server_config.user == 'roOT'
 	assert server_config.password_authentication
