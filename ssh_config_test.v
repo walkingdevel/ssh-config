@@ -1,5 +1,17 @@
 module ssh_config
 
+fn test_pase_case_insensitive_config() {
+	config := parse_file('./fixtures/.ssh/case-insensitive') or { panic(err) }
+	server_config := config['seRver']
+
+	assert server_config.host == 'seRver'
+	assert server_config.hostname == '2.2.2.2'
+	assert server_config.user == 'roOT'
+	assert server_config.password_authentication
+	assert server_config.user_known_hosts_file == '/teSt/pAtH'
+	assert server_config.challenge_response_authentication
+}
+
 fn test_parse_empty_config() {
 	config := parse_file('./fixtures/.ssh/empty') or { panic(err) }
 

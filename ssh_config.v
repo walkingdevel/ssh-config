@@ -2,8 +2,9 @@ module ssh_config
 
 import os
 
-struct SshConfig {
-mut:
+// SshConfig represents a parsed SSH configuration.
+pub struct SshConfig {
+pub mut:
 	host                              string
 	address_family                    string
 	batch_mode                        bool
@@ -74,38 +75,47 @@ mut:
 	xauth_location                    string
 }
 
+// parse_file parses an SSH configuration file. The current working directory is used as the base path for relative include paths.
 pub fn parse_file(path string) !map[string]SshConfig {
-	directory_path := os.dir(path)
-	absolute_path := os.abs_path(directory_path)
-	config := os.read_file(path)!
+	absolute_path := os.abs_path(os.dir(path))
 
-	return parse_config(absolute_path, config)
+	config_raw := os.read_file(path)!
+	return parse_with_path(absolute_path, config_raw)
 }
 
-pub fn parse(config string) !map[string]SshConfig {
-	return parse_config('', config)!
+// parse parses an SSH configuration string. Includes are ignored.
+pub fn parse(config_raw string) !map[string]SshConfig {
+	return parse_with_path('', config_raw)
 }
 
-fn parse_config(path string, config string) !map[string]SshConfig {
+// parse_with_path parses an SSH configuration string. The base path is used as the base path for
+// relative include paths. ıf the base path is empty, includes are ignored.
+pub fn parse_with_path(path string, config_raw string) !map[string]SshConfig {
+	// parsed SSH configurations
 	mut configs := map[string]SshConfig{}
+	// the current host being parsed
 	mut current_host := ''
 
-	for config_line in config.split_into_lines() {
-		is_comment := config_line.starts_with('#')
-		is_empty_line := config_line.trim_space().len == 0
+	for config_line in config_raw.split_into_lines() {
+		config_line_lower := config_line.to_lower()
+		config_line_lower_trimmed := config_line_lower.trim_space()
 
-		if is_comment || is_empty_line {
+		// skip empty lines and comments
+		if config_line_lower_trimmed.starts_with('#') || config_line_lower_trimmed.len == 0 {
 			continue
 		}
 
-		line_parts := config_line.trim_space().split(' ')
+		line_parts := config_line.trim_space().split_nth(' ', 2)
 
+		// ignore invalid lines, lines must be "<ident> <value>"
 		if line_parts.len < 2 {
 			continue
 		}
 
-		if is_include_declaration(config_line) && path.len > 0 {
+		// handle include statements, ignore if no path is set
+		if config_line_lower.starts_with('include ') && path != '' {
 			include_path := line_parts[1]
+
 			absolute_path := if include_path.starts_with('/') {
 				include_path
 			} else {
@@ -116,37 +126,31 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 			merge_configs(mut configs, include_configs)
 		}
 
-		if is_host_declaration(config_line) {
+		// handle host declarations
+		if config_line_lower.starts_with('host ') {
 			host := line_parts[1]
-			is_host_empty := host.len == 0
 
-			if !is_host_empty {
-				current_host = host
-				configs[host] = get_default_config(host)
-			}
+			current_host = host
+			configs[host] = get_default_config(host)
 		}
 
-		if is_property_declaration(config_line) {
-			property_name := line_parts.first().to_lower()
-			property_value := line_parts[1..].join(' ')
+		// handle property declarations
+		// ignore property declarations if no host is set
+		if is_property_declaration(config_line_lower) && current_host != '' {
+			property_name_lower := line_parts.first().to_lower()
+			property_value := line_parts[1]
 
 			$for field in SshConfig.fields {
-				config_param := convert_structure_field_name_to_config_param(field.name)
-
-				$if field.typ is bool {
-					if compare_strings(property_name, config_param) {
-						configs[current_host].$(field.name) = property_to_bool(property_value)
+				if property_name_lower == field.name.replace('_', '') {
+					$if field.typ is bool {
+						configs[current_host].$(field.name) = property_to_bool(property_value.to_lower())
 					}
-				}
 
-				$if field.typ is int {
-					if compare_strings(property_name, config_param) {
+					$if field.typ is int {
 						configs[current_host].$(field.name) = property_value.int()
 					}
-				}
 
-				$if field.typ is string {
-					if compare_strings(property_name, config_param) {
+					$if field.typ is string {
 						if 'to_lower_case' in field.attrs {
 							configs[current_host].$(field.name) = property_value.to_lower()
 						} else if 'to_upper_case' in field.attrs {
@@ -163,28 +167,16 @@ fn parse_config(path string, config string) !map[string]SshConfig {
 	return configs
 }
 
-fn is_include_declaration(value string) bool {
-	return value.to_lower().starts_with('include ')
-}
-
-fn is_host_declaration(value string) bool {
-	return value.to_lower().starts_with('host ')
-}
-
 fn is_property_declaration(property string) bool {
 	clean_property := property.trim_space()
 	is_property_empty := clean_property.len == 0
-	has_indent := property.starts_with(' ') || property.starts_with('\t')
 
-	return !is_property_empty && has_indent
-}
-
-fn compare_strings(x string, y string) bool {
-	return x.to_lower() == y.to_lower()
+	// properties must be indented
+	return !is_property_empty && (property.starts_with(' ') || property.starts_with('\t'))
 }
 
 fn property_to_bool(property string) bool {
-	return property.to_lower() == 'yes'
+	return property == 'yes'
 }
 
 fn get_default_config(host string) SshConfig {
@@ -215,8 +207,4 @@ fn merge_configs(mut x map[string]SshConfig, y map[string]SshConfig) {
 	for host, config in y {
 		x[host] = config
 	}
-}
-
-fn convert_structure_field_name_to_config_param(name string) string {
-	return name.replace('_', '')
 }
